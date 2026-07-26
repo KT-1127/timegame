@@ -1,847 +1,644 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ジャストタイム・ストップウォッチ</title>
-    <!-- faviconの定義 -->
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <style>
-        :root {
-            --bg-grad: linear-gradient(135deg, #ffd1dc, #e0bbe4, #d4f0fc);
-            --text-color: #4a4063;
-            --h1-color: #7b52ab;
-            --sub-color: #6b5b95;
-            --card-bg: rgba(255, 255, 255, 0.6);
-            --card-border: #e2d9fc;
-            --timer-bg: #ffffff;
-            --timer-border: #b5a2ff;
-            --timer-text: #ff758c;
-            --btn-start: linear-gradient(135deg, #9bf6ff, #70c1b3);
-            --btn-start-text: #2e5a51;
-            --btn-stop: linear-gradient(135deg, #ffadad, #ff6b6b);
-            --btn-retry: linear-gradient(135deg, #bdb2ff, #9381ff);
-            --modal-bg: #ffffff;
-            --modal-border: #b5a2ff;
-            --input-bg: #f7f5ff;
-            --input-border: #dcd6f7;
-            --btn-main: #b5a2ff;
-            --rank-text: #4a4063;
-            --rank-time: #ff758c;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>AR チャッピー さがし ── 3分タイムアタック</title>
+<style>
+  :root{
+    --paper:#F3EDE0; --ink:#23201B; --frame:#4A3B2E; --shu:#B23A2E; --sky:#3fb6e6;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
+    --gothic:"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:#051005;
+    font-family:var(--gothic);color:var(--ink);overscroll-behavior:none}
+  canvas{display:block}
 
-        body.theme-dark {
-            --bg-grad: linear-gradient(135deg, #192231, #1e3a5f, #0f172a);
-            --text-color: #e2e8f0;
-            --h1-color: #7dd3fc;
-            --sub-color: #93c5fd;
-            --card-bg: rgba(30, 41, 59, 0.85);
-            --card-border: #334155;
-            --timer-bg: #1e293b;
-            --timer-border: #38bdf8;
-            --timer-text: #38bdf8;
-            --btn-start: linear-gradient(135deg, #0284c7, #0369a1);
-            --btn-start-text: #ffffff;
-            --btn-stop: linear-gradient(135deg, #0284c7, #0284c7);
-            --btn-retry: linear-gradient(135deg, #0284c7, #0369a1);
-            --modal-bg: #1e293b;
-            --modal-border: #38bdf8;
-            --input-bg: #0f172a;
-            --input-border: #475569;
-            --btn-main: #0284c7;
-            --rank-text: #ffffff;
-            --rank-time: #38bdf8;
-        }
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:5;
+    padding:calc(env(safe-area-inset-top) + 14px) 16px;
+    display:flex;justify-content:space-between;align-items:flex-start}
+  .panel{font-family:var(--mincho);color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.85);
+    letter-spacing:.1em;line-height:1.5}
+  .panel .lab{font-size:11px;opacity:.85}
+  .panel b{font-size:30px;font-weight:600;letter-spacing:.02em}
+  #timerPanel{text-align:right}
+  #timerPanel.warn b{color:#ffd24a}
+  #timerPanel.danger b{color:#ff6a5a}
+  #mode{position:fixed;left:16px;bottom:calc(env(safe-area-inset-bottom) + 96px);z-index:5;
+    font-size:10px;color:#9fb08e;letter-spacing:.1em;pointer-events:none;opacity:.7}
 
-        body {
-            background: var(--bg-grad);
-            color: var(--text-color);
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            margin: 0;
-            padding: 20px 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            min-height: 100vh;
-            box-sizing: border-box;
-            overflow-x: hidden;
-            position: relative;
-            transition: background 0.3s, color 0.3s;
-        }
-        .container {
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            z-index: 10;
-        }
-        .header-area {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        h1 {
-            font-size: 19px;
-            color: var(--h1-color);
-            margin: 0;
-            cursor: pointer;
-            user-select: none;
-            text-shadow: 1px 1px 2px rgba(255,255,255,0.4);
-        }
-        .howto-btn {
-            background: var(--card-bg);
-            border: 2px solid var(--timer-border);
-            color: var(--sub-color);
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 11px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-        .howto-btn:hover {
-            opacity: 0.8;
-        }
-        p {
-            font-size: 13px;
-            color: var(--sub-color);
-            margin: 0 0 10px 0;
-            text-align: center;
-            font-weight: bold;
-        }
-        .mode-select {
-            display: flex;
-            gap: 8px;
-            width: 100%;
-            margin-bottom: 12px;
-        }
-        .mode-btn {
-            flex: 1;
-            padding: 10px 4px;
-            font-size: 14px;
-            font-weight: bold;
-            border: 2px solid var(--timer-border);
-            background: var(--card-bg);
-            color: var(--sub-color);
-            border-radius: 15px;
-            cursor: pointer;
-            transition: 0.2s;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        }
-        .mode-btn.active {
-            background: var(--btn-main);
-            color: #ffffff;
-            border-color: var(--timer-border);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-        }
-        .card {
-            background: var(--card-bg);
-            border: 2px solid var(--card-border);
-            border-radius: 20px;
-            padding: 10px 15px;
-            width: 100%;
-            margin-bottom: 12px;
-            box-sizing: border-box;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-        .timer-box {
-            background: var(--timer-bg);
-            border: 4px solid var(--timer-border);
-            border-radius: 25px;
-            padding: 20px 10px;
-            width: 100%;
-            text-align: center;
-            box-sizing: border-box;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            margin-bottom: 15px;
-            position: relative;
-            overflow: hidden;
-            transition: background 0.3s, border-color 0.3s;
-        }
-        .timer-text {
-            font-size: 68px;
-            font-weight: bold;
-            color: var(--timer-text);
-            font-family: monospace;
-            margin: 5px 0;
-            letter-spacing: -2px;
-            transition: opacity 0.2s;
-        }
-        .blind-msg {
-            position: absolute;
-            inset: 0;
-            background: var(--timer-bg);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        .blind-msg.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .message {
-            font-size: 14px;
-            font-weight: bold;
-            color: var(--timer-text);
-            margin-top: 5px;
-        }
-        .diff-badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: bold;
-            margin-top: 8px;
-            font-family: monospace;
-        }
-        .badge-perfect { background: #ffe66d; color: #555; box-shadow: 0 0 15px rgba(255, 230, 109, 0.6); }
-        .badge-fast { background: #a0c4ff; color: #fff; }
-        .badge-slow { background: #ffadad; color: #fff; }
+  #net{position:fixed;left:50%;top:50%;width:128px;height:128px;margin:-64px 0 0 -64px;
+    pointer-events:none;z-index:5;transition:transform .1s ease}
+  #net.swing{transform:scale(.72)}
+  #net .ring{fill:none;stroke:rgba(255,255,255,.4);stroke-width:2}
+  #net .mesh{stroke:rgba(255,255,255,.2);stroke-width:.7;fill:none}
+  #net.on .ring{stroke:#7fe3ff;stroke-width:3}
+  #net.on .mesh{stroke:rgba(127,227,255,.5)}
 
-        .btn {
-            width: 100%;
-            padding: 14px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-bottom: 10px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-        }
-        .btn-start {
-            background: var(--btn-start);
-            color: var(--btn-start-text);
-        }
-        .btn-stop {
-            background: var(--btn-stop);
-            color: white;
-        }
-        .btn-retry {
-            background: var(--btn-retry);
-            color: white;
-        }
-        .btn:active {
-            transform: scale(0.97);
-        }
-        .ranking-section {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 12px 15px;
-            width: 100%;
-            max-width: 400px;
-            box-sizing: border-box;
-            border: 2px solid var(--card-border);
-            z-index: 10;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            margin-bottom: 10px;
-        }
-        .ranking-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            font-size: 13px;
-            color: var(--sub-color);
-            font-weight: bold;
-        }
-        ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            max-height: 100px;
-            overflow-y: auto;
-        }
-        li {
-            display: flex;
-            justify-content: space-between;
-            background: var(--card-bg);
-            padding: 6px 10px;
-            border-radius: 10px;
-            margin-bottom: 4px;
-            font-size: 12px;
-            color: var(--rank-text);
-        }
-        li.top-rank {
-            background: rgba(56, 189, 248, 0.15);
-            border: 1px solid var(--timer-border);
-            color: var(--rank-text);
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-        .modal-content {
-            background: var(--modal-bg);
-            border: 3px solid var(--modal-border);
-            padding: 20px;
-            border-radius: 25px;
-            width: 85%;
-            max-width: 320px;
-            text-align: center;
-            position: relative;
-            z-index: 101;
-            box-sizing: border-box;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            color: var(--text-color);
-        }
-        .modal input {
-            width: 100%;
-            padding: 10px;
-            background: var(--input-bg);
-            border: 2px solid var(--input-border);
-            color: var(--text-color);
-            border-radius: 15px;
-            margin-bottom: 12px;
-            box-sizing: border-box;
-            font-size: 15px;
-            text-align: center;
-        }
-        .theme-select-area {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-        .theme-option {
-            flex: 1;
-            padding: 8px;
-            border-radius: 12px;
-            border: 2px solid var(--input-border);
-            background: var(--input-bg);
-            color: var(--text-color);
-            font-size: 11px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .theme-option.selected {
-            border-color: var(--h1-color);
-            background: var(--btn-main);
-            color: #ffffff;
-        }
-        .small-btn {
-            background: var(--btn-main);
-            color: white;
-            border: none;
-            padding: 7px 12px;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-        .howto-text {
-            text-align: left;
-            font-size: 12px;
-            color: var(--sub-color);
-            line-height: 1.5;
-            margin-bottom: 15px;
-        }
-        .howto-text ol {
-            padding-left: 18px;
-            margin: 8px 0;
-        }
-        rt {
-            font-size: 9px;
-            color: var(--h1-color);
-        }
+  #target{position:fixed;left:0;right:0;top:calc(50% + 80px);text-align:center;z-index:5;
+    font-family:var(--mincho);font-size:15px;letter-spacing:.18em;color:#eaffff;
+    text-shadow:0 1px 6px rgba(0,0,0,.9);opacity:0;transition:opacity .12s}
+  #target.on{opacity:1}
 
-        /* 花びらパーティクル */
-        .petal {
-            position: absolute;
-            background: #ffb7c5;
-            border-radius: 150% 0 150% 0;
-            animation: fall linear infinite;
-            z-index: 5;
-            pointer-events: none;
-        }
-        @keyframes fall {
-            0% {
-                transform: translateY(-20px) rotate(0deg);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(100vh) rotate(360deg);
-                opacity: 0.2;
-            }
-        }
+  .bar{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;gap:10px;
+    justify-content:center;align-items:center;padding:0 14px calc(env(safe-area-inset-bottom) + 20px)}
+  button{font-family:var(--gothic);font-size:16px;border:none;cursor:pointer}
+  #catch{pointer-events:auto;background:var(--paper);color:var(--ink);border-radius:999px;
+    padding:16px 44px;letter-spacing:.2em;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.55)}
+  #catch:active{transform:translateY(2px)}
+  #catch:disabled{opacity:.5}
 
-        /* 右上のピンクのうさぎさん */
-        .bunny-pink {
-            position: fixed;
-            top: 12px;
-            right: 12px;
-            font-size: 24px;
-            animation: hop 2s ease-in-out infinite;
-            z-index: 1;
-            pointer-events: none;
-            filter: drop-shadow(0 2px 4px rgba(255, 105, 180, 0.4));
-        }
-        @keyframes hop {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-8px) scale(1.08); }
-        }
-    </style>
+  #pop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.4);z-index:7;
+    font-family:var(--mincho);font-size:28px;letter-spacing:.1em;color:#fff;font-weight:700;
+    text-shadow:0 2px 12px rgba(0,0,0,.6);opacity:0;pointer-events:none}
+  #pop.hit{animation:pop .7s ease-out}
+  @keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+    25%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+    60%{opacity:1;transform:translate(-50%,-70%) scale(1)}
+    100%{opacity:0;transform:translate(-50%,-120%) scale(1)}}
+
+  /* オーバーレイ共通 */
+  .over{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:22px;padding:32px;text-align:center;
+    background:radial-gradient(120% 90% at 50% 16%,#5cc0ea 0%,#2a6f96 42%,#0c2333 100%)}
+  .over h1{margin:0;font-family:var(--mincho);color:#fff;font-weight:600;font-size:26px;
+    letter-spacing:.28em;text-indent:.28em}
+  .over p{margin:0;max-width:23em;line-height:2.0;color:#e6f4fb;font-size:14px;letter-spacing:.04em}
+  .over .big{font-family:var(--mincho);color:#fff;font-size:64px;font-weight:700;letter-spacing:.04em;
+    line-height:1.1;margin:4px 0}
+  .over .big small{font-size:22px;opacity:.85;font-weight:500}
+  .btn{background:#fff;color:var(--ink);border-radius:999px;padding:17px 46px;
+    letter-spacing:.22em;font-weight:700;font-family:var(--mincho);font-size:17px;pointer-events:auto}
+  .note{font-size:11px;color:#bcd7e6;letter-spacing:.05em;line-height:1.85}
+  #load{color:#dbeaf2;font-size:12px;letter-spacing:.2em;font-family:var(--mincho)}
+  #result{display:none}
+  .rank{font-family:var(--mincho);font-size:20px;color:#ffe58a;letter-spacing:.2em}
+</style>
 </head>
 <body>
 
-    <div id="petalContainer"></div>
+<video id="vid" playsinline muted autoplay
+  style="position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none;background:#111"></video>
 
-    <!-- 右上のピンクのうさぎさん -->
-    <div class="bunny-pink">🐰</div>
+<div id="hud">
+  <div class="panel"><span class="lab">みつけた</span><br><b><span id="found">0</span></b> / 20</div>
+  <div class="panel" id="timerPanel"><span class="lab">のこり</span><br><b><span id="time">3:00</span></b></div>
+</div>
+<div id="mode"></div>
 
-    <div class="container">
-        <!-- ヘッダー -->
-        <header style="width: 100%;">
-            <div class="header-area">
-                <h1 onclick="handleSecretReset()">⏱️ <ruby>時間<rt>じかん</rt></ruby>であわせよう</h1>
-                <button class="howto-btn" onclick="openHowToModal()">❓ <ruby>遊<rt>あそ</rt></ruby>び<ruby>方<rt>かた</rt></ruby></button>
-            </div>
-            <p id="targetSubText">10<ruby>秒<rt>びょう</rt></ruby>でとめよう！</p>
-        </header>
+<svg id="net" viewBox="0 0 128 128">
+  <circle class="ring" cx="64" cy="64" r="52"/>
+  <g class="mesh"><path d="M12 64H116M64 12V116"/><circle cx="64" cy="64" r="34"/>
+    <circle cx="64" cy="64" r="17"/><path d="M27 27 101 101M101 27 27 101"/></g>
+</svg>
+<div id="target"></div>
+<div id="pop">みつけた！</div>
 
-        <!-- モード選択ボタン -->
-        <div class="mode-select">
-            <button id="btnMode5" class="mode-btn" onclick="changeMode(5)">5<ruby>秒<rt>びょう</rt></ruby></button>
-            <button id="btnMode10" class="mode-btn active" onclick="changeMode(10)">10<ruby>秒<rt>びょう</rt></ruby></button>
-            <button id="btnMode20" class="mode-btn" onclick="changeMode(20)">20<ruby>秒<rt>びょう</rt></ruby></button>
-        </div>
+<div class="bar">
+  <button id="catch">つかまえる</button>
+</div>
 
-        <!-- プレイヤー情報 -->
-        <div class="card">
-            <div>
-                <span style="font-size: 12px;"><ruby>名前<rt>なまえ</rt></ruby>: </span>
-                <span id="playerNameDisplay" style="font-weight: bold;"><ruby>未設定<rt>みせってい</rt></ruby></span>
-            </div>
-            <button class="small-btn" onclick="openNameModal()"><ruby>変更<rt>へんこう</rt></ruby></button>
-        </div>
+<!-- スタート -->
+<div id="start" class="over">
+  <h1>チャッピー さがし</h1>
+  <p id="lead">読み込み中…</p>
+  <button class="btn" id="go" style="display:none">はじめる</button>
+  <div class="note" id="note"></div>
+</div>
 
-        <!-- タイマー画面 -->
-        <div class="timer-box">
-            <div style="font-size: 11px; letter-spacing: 2px;" id="modeTitleLabel">TARGET: 10.00s</div>
-            <div id="timerDisplay" class="timer-text">00.00</div>
-            <!-- タイムを隠すブラインド表示 -->
-            <div id="blindOverlay" class="blind-msg">
-                <span style="font-size: 28px;">🐰🙈</span>
-                <span style="font-size: 12px; font-weight: bold; margin-top: 5px;"><ruby>時間<rt>じかん</rt></ruby>がかくされたよ！かんかくで数えよう！</span>
-            </div>
-            <div id="resultMessage" class="message">スタートボタンをおしてね</div>
-            <div id="badgeContainer"></div>
-        </div>
+<!-- リザルト -->
+<div id="result" class="over">
+  <h1>おわり！</h1>
+  <div class="big"><span id="score">0</span><small> / 20 匹</small></div>
+  <div class="rank" id="rank"></div>
+  <p id="rmsg"></p>
+  <button class="btn" id="again">もういちど</button>
+</div>
 
-        <!-- ボタン類 -->
-        <div style="width: 100%;">
-            <button id="actionButton" class="btn btn-start" onclick="handleActionButton()">スタート！</button>
-        </div>
-    </div>
+<script src="./three.min.js"></script>
+<script src="./OrbitControls.js"></script>
+<script>
+"use strict";
 
-    <!-- ランキング -->
-    <div class="ranking-section">
-        <div class="ranking-header">
-            <span id="rankingTitleText">🏆 <ruby>順位<rt>じゅんい</rt></ruby> (10<ruby>秒<rt>びょう</rt></ruby>)</span>
-        </div>
-        <ul id="rankingList">
-            <li style="justify-content: center;">まだ<ruby>記録<rt>きろく</rt></ruby>がありません</li>
-        </ul>
-    </div>
+/* 予期せぬエラーだけ小さく表示（通常は非表示） */
+var DBG=document.createElement('div');
+DBG.style.cssText='position:fixed;z-index:9999;left:0;top:0;right:0;background:rgba(120,0,0,.85);'+
+  'color:#fff;font:11px/1.5 ui-monospace,monospace;white-space:pre-wrap;padding:6px 8px;display:none;pointer-events:none';
+addEventListener('DOMContentLoaded',function(){document.body.appendChild(DBG);});
+function fail(m){ DBG.style.display='block'; DBG.textContent+=m+'\n'; }
+window.onerror=function(m,s,l,c){ fail('ERR '+m+' @'+l+':'+c); };
+addEventListener('unhandledrejection',function(e){ fail('REJ '+(e.reason&&e.reason.message||e.reason)); });
 
-    <!-- ニックネーム & テーマ設定モーダル -->
-    <div id="nameModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-top: 0;" id="nameModalTitle"><ruby>名前<rt>なまえ</rt></ruby>をいれてね</h3>
-            <p style="font-size: 12px; margin-bottom: 8px;"><ruby>順位表<rt>じゅんいひょう</rt></ruby>にでるよ（8もじまで）</p>
-            <input type="text" id="nicknameInput" maxlength="8" placeholder="例：うさぎさん">
-            
-            <p style="font-size: 13px; margin: 10px 0 6px 0; font-weight: bold; color: var(--h1-color);">🎨 <ruby>背景<rt>はいけい</rt></ruby>のいろをえらぶ</p>
-            <div class="theme-select-area">
-                <div id="themeLight" class="theme-option selected" onclick="selectTheme('light')">☀️ あかるい色系<br><span style="font-size:9px; opacity:0.8;">（パステル）</span></div>
-                <div id="themeDark" class="theme-option" onclick="selectTheme('dark')">🌙 くらい色系<br><span style="font-size:9px; opacity:0.8;">（水色・青）</span></div>
-            </div>
+/* ══════════════════════════════════════════════════════════════
+   設定
+   ══════════════════════════════════════════════════════════════ */
+const CFG = {
+  TOTAL       : 20,     // チャッピーの数
+  TIME_SEC    : 180,    // 制限時間（秒）＝3分
+  CATCH_ANGLE : 9.0,    // 照準の許容角(度)
+  CATCH_DIST  : 2.4,    // この距離(m)まで近づくと捕まえられる
+  CAT_SCALE   : 1.0,    // チャッピーの大きさ倍率
+  TREE_COUNT  : 40,
+  FIELD       : 14,     // 森の半径(m)
+  EYE_HEIGHT  : 1.5,
+  WANDER      : true,   // チャッピーが歩き回る
+};
 
-            <button class="small-btn" style="width: 100%; padding: 12px; font-size: 15px;" onclick="saveNickname()">これでOK！</button>
-        </div>
-    </div>
+/* ══════════════════════════════════════════════════════════════
+   モード判定
+   ══════════════════════════════════════════════════════════════ */
+let MODE='desktop';
+let scene, camera, renderer, controls;
+const clock=new THREE.Clock();
+const vid=document.getElementById('vid');
+const leadEl=document.getElementById('lead'), noteEl=document.getElementById('note');
+const goBtn=document.getElementById('go'), modeEl=document.getElementById('mode');
 
-    <!-- シークレットモード：ランキング削除選択モーダル -->
-    <div id="secretModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-top: 0; margin-bottom: 8px;">🐰 うらモード</h3>
-            <p style="font-size: 13px; margin-bottom: 15px;">どの<ruby>記録<rt>きろく</rt></ruby>を消しますか？</p>
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
-                <button class="small-btn" style="padding: 10px; font-size: 12px;" onclick="resetSpecificRanking(5)">5<ruby>秒<rt>びょう</rt></ruby>のきろくを消す</button>
-                <button class="small-btn" style="padding: 10px; font-size: 12px;" onclick="resetSpecificRanking(10)">10<ruby>秒<rt>びょう</rt></ruby>のきろくを消す</button>
-                <button class="small-btn" style="padding: 10px; font-size: 12px;" onclick="resetSpecificRanking(20)">20<ruby>秒<rt>びょう</rt></ruby>のきろくを消す</button>
-            </div>
-            <button class="small-btn" style="width: 100%; padding: 10px; background: #64748b;" onclick="closeSecretModal()">もどる</button>
-        </div>
-    </div>
+async function detectMode(){
+  if(navigator.xr && await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false)) MODE='xr';
+  else if(/iPhone|iPad|iPod/.test(navigator.userAgent) && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) MODE='ios';
+  else MODE='desktop';
+}
 
-    <!-- やり方説明モーダル -->
-    <div id="howToModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-top: 0; margin-bottom: 10px;">📖 あそびかた</h3>
-            <div class="howto-text">
-                <ol>
-                    <li>うえのボタンから、すきなじかん（5秒・10秒・20秒）をえらぼう！</li>
-                    <li>「スタート！」をおすと、じかんがすすむよ。</li>
-                    <li>5秒のときは<strong>2秒</strong>、10・20秒のときは<strong>5秒</strong>をすぎると、じかんが見えなくなるよ！</li>
-                    <li>心の中でかぞえて、ぴったりだと思ったところで<strong>「ストップ！」</strong>をおそう。</li>
-                    <li>3位までに入ると、お祝いの花びらがふるよ！🌸</li>
-                </ol>
-            </div>
-            <button class="small-btn" style="width: 100%; padding: 10px;" onclick="closeHowToModal()">とじる</button>
-        </div>
-    </div>
+/* ══════════════════════════════════════════════════════════════
+   Three.js 基本
+   ══════════════════════════════════════════════════════════════ */
+function initThree(){
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(62, innerWidth/innerHeight, 0.05, 300);
+  camera.position.set(0, CFG.EYE_HEIGHT, 0);
 
-    <!-- 結果モーダル -->
-    <div id="resultModal" class="modal">
-        <div class="modal-content">
-            <div id="modalEmoji" style="font-size: 32px; margin-bottom: 3px;">🎉</div>
-            <h3 id="modalTitle" style="margin: 3px 0;"><ruby>結果<rt>けっか</rt></ruby></h3>
-            <p id="modalText" style="font-size: 12px; margin-bottom: 12px;">ずれ: 0.00<ruby>秒<rt>びょう</rt></ruby></p>
-            <button class="small-btn" style="width: 100%; padding: 10px;" onclick="closeResultModal()">OK</button>
-        </div>
-    </div>
+  renderer=new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setClearColor(0x000000, 0);
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.xr.enabled=(MODE==='xr');
+  renderer.domElement.style.cssText='position:fixed;inset:0;z-index:1';
+  document.body.appendChild(renderer.domElement);
 
-    <script>
-        let currentMode = 10;
-        let gameState = 'IDLE'; 
-        let startTime = 0;
-        let elapsedTime = 0;
-        let timerInterval = null;
-        let playerName = localStorage.getItem('stopwatch_player_name') || '';
-        let currentTheme = localStorage.getItem('stopwatch_theme') || 'light';
-        
-        let allRankings = JSON.parse(localStorage.getItem('stopwatch_independent_rankings') || '{"5":[], "10":[], "20":[]}');
+  scene.add(new THREE.AmbientLight(0xbcd4e0, 1.35));
+  const sun=new THREE.DirectionalLight(0xfff2d8, 1.8);
+  sun.position.set(6,14,4); sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048);
+  Object.assign(sun.shadow.camera,{near:0.5,far:50,left:-18,right:18,top:18,bottom:-18});
+  scene.add(sun);
 
-        let titleClickCount = 0;
-        let titleClickTimer = null;
+  addEventListener('resize',()=>{
+    if(MODE==='xr'&&renderer.xr.isPresenting) return;
+    camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
+}
 
-        applyTheme(currentTheme);
+/* ══════════════════════════════════════════════════════════════
+   森
+   ══════════════════════════════════════════════════════════════ */
+const trees=[];
+function buildForest(){
+  if(MODE!=='xr'){
+    const ground=new THREE.Mesh(new THREE.CircleGeometry(CFG.FIELD*4,48),
+      new THREE.MeshStandardMaterial({color:0x2a4a1e, roughness:0.95}));
+    ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground);
+  } else {
+    const sg=new THREE.Mesh(new THREE.PlaneGeometry(200,200), new THREE.ShadowMaterial({opacity:0.26}));
+    sg.rotation.x=-Math.PI/2; sg.receiveShadow=true; scene.add(sg);
+  }
+  const bladeGeo=new THREE.ConeGeometry(0.05,0.5,4);
+  const bladeMat=new THREE.MeshStandardMaterial({color:0x3a5a24, roughness:1});
+  const grass=new THREE.InstancedMesh(bladeGeo,bladeMat,400);
+  const m=new THREE.Object3D();
+  for(let i=0;i<400;i++){
+    const a=Math.random()*6.283, r=1+Math.random()*CFG.FIELD;
+    m.position.set(Math.cos(a)*r,0.25,Math.sin(a)*r);
+    m.rotation.set(0,Math.random()*6.283,(Math.random()-.5)*0.3);
+    const s=0.6+Math.random()*1.1; m.scale.set(s,s,s); m.updateMatrix(); grass.setMatrixAt(i,m.matrix);
+  }
+  scene.add(grass);
+  for(let i=0;i<CFG.TREE_COUNT;i++){
+    const a=Math.random()*6.283, r=2.5+Math.random()*CFG.FIELD;
+    scene.add(makeTree(Math.cos(a)*r, Math.sin(a)*r));
+  }
+}
+function makeTree(x,z){
+  const t=new THREE.Group();
+  const h=3.2+Math.random()*1.8;
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.38,h,8),
+    new THREE.MeshStandardMaterial({color:0x5a3a1a, roughness:0.9}));
+  trunk.position.y=h/2; trunk.castShadow=trunk.receiveShadow=true; t.add(trunk);
+  const leafMat=new THREE.MeshStandardMaterial({color:0x2f6d2a, roughness:0.85});
+  for(let i=0;i<3;i++){
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(1.9-i*0.35,2.3,8), leafMat);
+    cone.position.y=h*0.8+i*1.2; cone.castShadow=true; t.add(cone);
+  }
+  t.position.set(x,0,z); t.rotation.y=Math.random()*6.283; return t;
+}
 
-        if (!playerName) {
-            document.getElementById('nameModal').style.display = 'flex';
-        } else {
-            document.getElementById('playerNameDisplay').textContent = playerName;
-            document.getElementById('nameModal').style.display = 'none';
-        }
+/* ══════════════════════════════════════════════════════════════
+   チャッピーロボ 3Dモデル
+   ══════════════════════════════════════════════════════════════ */
+let FACE_TEX=null;
+function makeFaceTexture(){
+  const W=512,H=384, c=document.createElement('canvas'); c.width=W; c.height=H;
+  const g=c.getContext('2d');
+  g.clearRect(0,0,W,H);                                    // 周囲は透明
+  // 角丸の黒い画面
+  const x=32,y=44,w=W-64,h=H-88,r=58;
+  g.beginPath();
+  g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath();
+  g.fillStyle='#0a0d0f'; g.fill();
+  // 水色の発光
+  g.fillStyle='#5fe0ff'; g.strokeStyle='#5fe0ff';
+  g.shadowColor='#5fe0ff'; g.shadowBlur=22;
+  // 目（縦長のまるい目・左右に広く）
+  g.beginPath(); g.ellipse(W*0.34,H*0.43,26,40,0,0,6.283); g.fill();
+  g.beginPath(); g.ellipse(W*0.66,H*0.43,26,40,0,0,6.283); g.fill();
+  // ω の口
+  g.lineWidth=13; g.lineJoin='round'; g.lineCap='round';
+  const my=H*0.62, mw=58;
+  g.beginPath();
+  g.moveTo(W/2-mw, my);
+  g.quadraticCurveTo(W/2-mw*0.5, my+26, W/2, my+2);
+  g.quadraticCurveTo(W/2+mw*0.5, my+26, W/2+mw, my);
+  g.stroke();
+  const tex=new THREE.CanvasTexture(c);
+  tex.anisotropy=4;
+  tex.flipY=true;       // ドームのUV(上がv=1)に合わせ、画像の上＝顔の上に
+  return tex;
+}
+/* 頂点を角丸キューブへ寄せる変形（t=0で球、t=1で立方体寄り） */
+function applyRoundedCube(geo, t){
+  const p=geo.attributes.position, n=new THREE.Vector3(), cube=new THREE.Vector3(), v=new THREE.Vector3();
+  for(let i=0;i<p.count;i++){
+    v.set(p.getX(i),p.getY(i),p.getZ(i)); const r=v.length()||1; n.copy(v).divideScalar(r);
+    const m=Math.max(Math.abs(n.x),Math.abs(n.y),Math.abs(n.z))||1;
+    cube.copy(n).multiplyScalar(1/m);
+    n.lerp(cube,t).multiplyScalar(r);
+    p.setXYZ(i, n.x, n.y, n.z);
+  }
+  p.needsUpdate=true; geo.computeVertexNormals(); return geo;
+}
+function roundedCubeGeo(radius, seg, t){
+  return applyRoundedCube(new THREE.SphereGeometry(radius, seg, seg), t);
+}
+function buildCat(){
+  const g=new THREE.Group();
+  const white=new THREE.MeshStandardMaterial({color:0xffffff, roughness:0.35, metalness:0.05});
+  const cyan =new THREE.MeshStandardMaterial({color:0x7fd8ef, roughness:0.5});
+  const black=new THREE.MeshStandardMaterial({color:0x0a0d0f, roughness:0.28, metalness:0.15});
+  const glow =new THREE.MeshStandardMaterial({color:0x4fd6ff, emissive:0x4fd6ff, emissiveIntensity:1.35, roughness:0.3});
 
-        updateModeUI();
+  // 体（まるい胴）
+  const body=new THREE.Mesh(new THREE.SphereGeometry(0.34,20,18), white);
+  body.geometry.scale(1,1.15,0.95); body.position.y=0.42; body.castShadow=true; g.add(body);
 
-        function selectTheme(theme) {
-            currentTheme = theme;
-            document.getElementById('themeLight').classList.toggle('selected', theme === 'light');
-            document.getElementById('themeDark').classList.toggle('selected', theme === 'dark');
-            applyTheme(theme);
-        }
+  // 頭（角丸キューブのヘルメット＝四角ばった輪郭）
+  const HEAD_T=0.34, HEAD_S=[1.06,1.05,0.86];   // 角丸の強さ / 縦横奥行の比（薄め・やわらかめ）
+  const head=new THREE.Group(); head.position.y=0.92; g.add(head);
+  const helm=new THREE.Mesh(roundedCubeGeo(0.40, 44, HEAD_T), white);
+  helm.geometry.scale(HEAD_S[0],HEAD_S[1],HEAD_S[2]); helm.castShadow=true; head.add(helm);
+  // 顔（頭とまったく同じ角丸キューブ形の前面を切り出し、わずかに前へ浮かせて貼る）
+  const faceMat=new THREE.MeshBasicMaterial({map:FACE_TEX, transparent:true, depthWrite:false});
+  const faceGeo=new THREE.SphereGeometry(0.40, 44, 36,
+    Math.PI*0.5 - 0.62, 1.24,      // 経度：正面まわり±（横幅）
+    Math.PI*0.5 - 0.44, 0.88);     // 緯度：正面まわり±（縦幅）
+  applyRoundedCube(faceGeo, HEAD_T);                       // 頭と同じ角丸形に
+  faceGeo.scale(HEAD_S[0],HEAD_S[1],HEAD_S[2]);           // 頭と同じ比率に
+  faceGeo.scale(1.035,1.035,1.035);                        // ごくわずかに前へ浮かせる（突き抜け防止）
+  // このキャップのUVを 0..1 に貼り直す（テクスチャ全体が顔に乗るように）
+  const uv=faceGeo.attributes.uv, pos=faceGeo.attributes.position;
+  let uMin=1,uMax=0,vMin=1,vMax=0;
+  for(let i=0;i<uv.count;i++){ const u=uv.getX(i),v=uv.getY(i);
+    if(u<uMin)uMin=u; if(u>uMax)uMax=u; if(v<vMin)vMin=v; if(v>vMax)vMax=v; }
+  for(let i=0;i<uv.count;i++){
+    uv.setXY(i, (uv.getX(i)-uMin)/(uMax-uMin), (uv.getY(i)-vMin)/(vMax-vMin));
+  }
+  uv.needsUpdate=true;
+  const face=new THREE.Mesh(faceGeo, faceMat);
+  face.position.set(0,0.02,0);
+  face.renderOrder=2;
+  head.add(face);
 
-        function applyTheme(theme) {
-            if (theme === 'dark') {
-                document.body.classList.add('theme-dark');
-            } else {
-                document.body.classList.remove('theme-dark');
-            }
-        }
+  // 耳（外白・内水色）── 大きめ・上寄り
+  [-1,1].forEach(s=>{
+    const ear=new THREE.Mesh(new THREE.ConeGeometry(0.20,0.40,4), white);
+    ear.position.set(s*0.27,0.44,0); ear.rotation.set(0.12,Math.PI/4,s*0.18); ear.castShadow=true; head.add(ear);
+    const inner=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.28,4), cyan);
+    inner.position.set(s*0.27,0.44,0.04); inner.rotation.set(0.12,Math.PI/4,s*0.18); head.add(inner);
+  });
 
-        function handleSecretReset() {
-            titleClickCount++;
-            clearTimeout(titleClickTimer);
-            if (titleClickCount >= 10) {
-                document.getElementById('secretModal').style.display = 'flex';
-                titleClickCount = 0;
-            } else {
-                titleClickTimer = setTimeout(() => {
-                    titleClickCount = 0;
-                }, 1000);
-            }
-        }
+  // 手（小さな白いこぶ）
+  [-1,1].forEach(s=>{
+    const arm=new THREE.Mesh(new THREE.SphereGeometry(0.11,12,12), white);
+    arm.position.set(s*0.34,0.42,0.06); arm.castShadow=true; g.add(arm);
+  });
+  // 足
+  const feet=[];
+  [-1,1].forEach(s=>{
+    const leg=new THREE.Mesh(new THREE.SphereGeometry(0.13,12,12), white);
+    leg.geometry.scale(1,0.8,1.2); leg.position.set(s*0.16,0.12,0.02); leg.castShadow=true;
+    g.add(leg); feet.push(leg);
+  });
 
-        function resetSpecificRanking(targetMode) {
-            allRankings[targetMode] = [];
-            localStorage.setItem('stopwatch_independent_rankings', JSON.stringify(allRankings));
-            renderRanking();
-            document.getElementById('secretModal').style.display = 'none';
-            alert(`🔓 ${targetMode}秒のきろくをけしました！`);
-        }
+  // しっぽ（カーブ）＋リンゴ
+  const curve=new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0,0.35,-0.28),
+    new THREE.Vector3(-0.15,0.30,-0.55),
+    new THREE.Vector3(-0.30,0.55,-0.62),
+    new THREE.Vector3(-0.28,0.95,-0.50),
+    new THREE.Vector3(-0.12,1.15,-0.36),
+  ]);
+  const tail=new THREE.Mesh(new THREE.TubeGeometry(curve,24,0.045,8,false), white);
+  tail.castShadow=true; g.add(tail);
+  // リンゴ
+  const apple=new THREE.Group(); apple.position.set(-0.12,1.28,-0.34); g.add(apple);
+  const ap=new THREE.Mesh(new THREE.SphereGeometry(0.14,16,16),
+    new THREE.MeshStandardMaterial({color:0xe23b2e, roughness:0.3, metalness:0.1}));
+  ap.geometry.scale(1,0.92,1); ap.castShadow=true; apple.add(ap);
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.09,5),
+    new THREE.MeshStandardMaterial({color:0x5a3a1a}));
+  stem.position.y=0.15; stem.rotation.z=0.2; apple.add(stem);
+  const leaf=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,8),
+    new THREE.MeshStandardMaterial({color:0x4a9d3a}));
+  leaf.geometry.scale(1.6,0.3,0.9); leaf.position.set(0.06,0.17,0); leaf.rotation.z=-0.5; apple.add(leaf);
 
-        function closeSecretModal() {
-            document.getElementById('secretModal').style.display = 'none';
-        }
+  g.userData.feet=feet;
+  g.scale.setScalar(CFG.CAT_SCALE*0.62);   // 実寸およそ0.55m
+  return g;
+}
 
-        function changeMode(seconds) {
-            if (gameState === 'RUNNING') return;
-            currentMode = seconds;
-            gameState = 'IDLE';
-            document.getElementById('timerDisplay').textContent = '00.00';
-            document.getElementById('resultMessage').textContent = 'スタートボタンをおしてね';
-            document.getElementById('badgeContainer').innerHTML = '';
-            document.getElementById('blindOverlay').classList.remove('active');
-            clearPetals();
-            
-            const btn = document.getElementById('actionButton');
-            btn.textContent = 'スタート！';
-            btn.className = 'btn btn-start';
+/* ══════════════════════════════════════════════════════════════
+   チャッピーを配置・歩き回らせる
+   ══════════════════════════════════════════════════════════════ */
+const cats=[];
+function placeCats(){
+  const R = MODE==='xr' ? 5.5 : CFG.FIELD*0.7;
+  const base=CFG.CAT_SCALE*0.62;
+  for(let i=0;i<CFG.TOTAL;i++){
+    const c=buildCat();
+    // 大きさをばらけさせる：半分はそのまま、半分は小さめ（見つけにくい）
+    const sizeMul = Math.random()<0.5 ? 1.0 : (0.5 + Math.random()*0.2);
+    const sc = base*sizeMul;
+    c.scale.setScalar(sc);
+    c.userData.baseScale=sc;
+    const a=Math.random()*6.283, r=1.2+Math.random()*R;
+    const x=Math.cos(a)*r, z=Math.sin(a)*r;
+    c.position.set(x,0,z);
+    c.rotation.y=Math.random()*6.283;
+    c.userData.caught=false;
+    c.userData.phase=Math.random()*6.283;
+    c.userData.speed=0.25+Math.random()*0.35;     // m/s
+    pickTarget(c, R);
+    scene.add(c); cats.push(c);
+  }
+}
+function pickTarget(c, R){
+  const a=Math.random()*6.283, r=1+Math.random()*(R||6);
+  c.userData.tx=Math.cos(a)*r; c.userData.tz=Math.sin(a)*r;
+  c.userData.wait=0.4+Math.random()*1.6;          // 到着後の休憩
+}
+const _dir=new THREE.Vector3();
+function wander(c, dt){
+  const u=c.userData;
+  if(u.wait>0){ u.wait-=dt; return; }
+  const dx=u.tx-c.position.x, dz=u.tz-c.position.z;
+  const d=Math.hypot(dx,dz);
+  if(d<0.15){ pickTarget(c, MODE==='xr'?5.5:CFG.FIELD*0.7); return; }
+  const step=Math.min(u.speed*dt, d);
+  c.position.x+=dx/d*step; c.position.z+=dz/d*step;
+  // 進む向きへゆっくり回頭
+  const want=Math.atan2(dx,dz);
+  let diff=want-c.rotation.y; while(diff>Math.PI)diff-=6.283; while(diff<-Math.PI)diff+=6.283;
+  c.rotation.y+=diff*Math.min(1,dt*6);
+}
 
-            updateModeUI();
-        }
+/* ══════════════════════════════════════════════════════════════
+   向き（非XR）
+   ══════════════════════════════════════════════════════════════ */
+const deg=Math.PI/180;
+let orient=null, yaw=0, pit=0;
+function onOrient(e){
+  if(e.alpha===null&&e.beta===null&&e.gamma===null) return;
+  orient={alpha:(e.alpha||0)*deg, beta:(e.beta||0)*deg, gamma:(e.gamma||0)*deg};
+}
+const _zee=new THREE.Vector3(0,0,1), _euler=new THREE.Euler();
+const _q0=new THREE.Quaternion(), _q1=new THREE.Quaternion(-Math.SQRT1_2,0,0,Math.SQRT1_2);
+function applyOrientation(){
+  if(!orient){ camera.rotation.set(pit,yaw,0,'YXZ'); return; }
+  const scr=((screen.orientation&&screen.orientation.angle)||window.orientation||0)*deg;
+  _euler.set(orient.beta, orient.alpha, -orient.gamma, 'YXZ');
+  camera.quaternion.setFromEuler(_euler);
+  camera.quaternion.multiply(_q1);
+  camera.quaternion.multiply(_q0.setFromAxisAngle(_zee,-scr));
+}
 
-        function updateModeUI() {
-            document.getElementById('btnMode5').className = currentMode === 5 ? 'mode-btn active' : 'mode-btn';
-            document.getElementById('btnMode10').className = currentMode === 10 ? 'mode-btn active' : 'mode-btn';
-            document.getElementById('btnMode20').className = currentMode === 20 ? 'mode-btn active' : 'mode-btn';
+/* ══════════════════════════════════════════════════════════════
+   照準判定
+   ══════════════════════════════════════════════════════════════ */
+const _v=new THREE.Vector3(), fwd=new THREE.Vector3(), camPos=new THREE.Vector3();
+let hover=null;
+function updateHover(){
+  if(MODE==='xr' && renderer.xr.isPresenting){
+    try{ renderer.xr.getCamera(camera); }catch(e){}
+  }
+  camera.getWorldPosition(camPos);
+  camera.getWorldDirection(fwd);
+  let best=Math.cos(CFG.CATCH_ANGLE*deg), pick=null;
+  for(const c of cats){
+    if(c.userData.caught) continue;
+    _v.copy(c.position).setY(camPos.y).sub(camPos);   // 高さは無視して水平で判定
+    const dist=_v.length();
+    if(dist>CFG.CATCH_DIST) continue;
+    _v.normalize();
+    const flat=fwd.clone().setY(0).normalize();
+    const dot=_v.dot(flat);
+    if(dot>best){ best=dot; pick=c; }
+  }
+  hover=pick;
+  netEl.classList.toggle('on', !!hover && gameActive);
+  if(hover && gameActive){ targetEl.textContent='チャッピー'; targetEl.classList.add('on'); }
+  else targetEl.classList.remove('on');
+}
 
-            document.getElementById('modeTitleLabel').textContent = `TARGET: ${currentMode}.00s`;
-            document.getElementById('rankingTitleText').textContent = `🏆 順位 (${currentMode}秒)`;
-            document.getElementById('targetSubText').textContent = `${currentMode}秒でとめよう！`;
+/* ══════════════════════════════════════════════════════════════
+   ループ
+   ══════════════════════════════════════════════════════════════ */
+function tick(){
+  const dt=Math.min(clock.getDelta(),0.05);
+  const t=clock.elapsedTime;
+  for(const c of cats){
+    if(c.userData.caught) continue;
+    if(CFG.WANDER && gameActive) wander(c,dt);
+    // てくてく：体の上下＋足
+    const moving=c.userData.wait<=0 && gameActive;
+    const bob=moving?Math.abs(Math.sin(t*6+c.userData.phase))*0.03:0;
+    c.position.y=bob;
+    if(c.userData.feet){
+      c.userData.feet[0].position.y=0.12+(moving?Math.max(0,Math.sin(t*6+c.userData.phase))*0.05:0);
+      c.userData.feet[1].position.y=0.12+(moving?Math.max(0,Math.sin(t*6+c.userData.phase+Math.PI))*0.05:0);
+    }
+  }
+  if(MODE==='xr' && renderer.xr.isPresenting){}
+  else if(MODE==='ios') applyOrientation();
+  else if(controls) controls.update();
+  updateHover();
+  renderer.render(scene,camera);
+}
 
-            renderRanking();
-        }
+/* ══════════════════════════════════════════════════════════════
+   ゲーム進行
+   ══════════════════════════════════════════════════════════════ */
+let gameActive=false, timeLeft=CFG.TIME_SEC, found=0, timerId=null;
+const netEl=document.getElementById('net'), targetEl=document.getElementById('target');
+const popEl=document.getElementById('pop'), foundEl=document.getElementById('found');
+const timeEl=document.getElementById('time'), timerPanel=document.getElementById('timerPanel');
+const catchBtn=document.getElementById('catch');
 
-        function handleActionButton() {
-            if (gameState === 'IDLE' || gameState === 'READY_TO_START') {
-                startTimer();
-            } else if (gameState === 'RUNNING') {
-                stopTimer();
-            } else if (gameState === 'FINISHED') {
-                prepareRetry();
-            }
-        }
+function fmt(s){ const m=(s/60|0), ss=s%60; return m+':'+String(ss).padStart(2,'0'); }
+function startGame(){
+  gameActive=true; timeLeft=CFG.TIME_SEC; found=0;
+  foundEl.textContent='0'; timeEl.textContent=fmt(timeLeft);
+  timerPanel.classList.remove('warn','danger');
+  catchBtn.disabled=false;
+  timerId=setInterval(()=>{
+    timeLeft--; timeEl.textContent=fmt(Math.max(0,timeLeft));
+    if(timeLeft<=30) timerPanel.classList.add('warn');
+    if(timeLeft<=10) timerPanel.classList.add('danger');
+    if(timeLeft<=0) endGame();
+  },1000);
+}
+function endGame(){
+  gameActive=false; clearInterval(timerId);
+  catchBtn.disabled=true;
+  netEl.classList.remove('on'); targetEl.classList.remove('on');
+  document.getElementById('score').textContent=found;
+  const rank = found>=20?'★★★ かんぺき！' : found>=15?'★★★ すごい！' :
+               found>=10?'★★☆ いいね！' : found>=5?'★☆☆ その調子！' : '☆☆☆ もういちど！';
+  document.getElementById('rank').textContent=rank;
+  document.getElementById('rmsg').textContent =
+    found>=CFG.TOTAL ? '20匹ぜんぶ見つけました！' : (CFG.TOTAL-found)+'匹 のこっていました';
+  document.getElementById('result').style.display='flex';
+}
+function doCatch(){
+  netEl.classList.remove('swing'); void netEl.offsetWidth; netEl.classList.add('swing');
+  setTimeout(()=>netEl.classList.remove('swing'),130);
+  if(!hover || !gameActive) return;
+  const c=hover; c.userData.caught=true;
+  let k=0;(function suck(){ k+=0.09; c.scale.multiplyScalar(0.84);
+    c.position.lerp(camPos,0.16); if(k<1) requestAnimationFrame(suck); else c.visible=false; })();
+  found++; foundEl.textContent=found;
+  popEl.textContent = found>=CFG.TOTAL ? 'コンプリート！' : 'みつけた！ '+found;
+  popEl.classList.remove('hit'); void popEl.offsetWidth; popEl.classList.add('hit');
+  hover=null;
+  if(found>=CFG.TOTAL) setTimeout(endGame,700);
+}
+catchBtn.onclick=doCatch;
 
-        function prepareRetry() {
-            gameState = 'READY_TO_START';
-            document.getElementById('timerDisplay').textContent = '00.00';
-            document.getElementById('resultMessage').textContent = 'じゅんびができたらスタート！';
-            document.getElementById('badgeContainer').innerHTML = '';
-            document.getElementById('blindOverlay').classList.remove('active');
-            clearPetals();
+/* ══════════════════════════════════════════════════════════════
+   起動
+   ══════════════════════════════════════════════════════════════ */
+async function enableSensor(){
+  const D=window.DeviceOrientationEvent; if(!D) return false;
+  if(typeof D.requestPermission==='function'){
+    try{ if(await D.requestPermission()!=='granted') return false; }catch(_){ return false; }
+  }
+  addEventListener('deviceorientation', onOrient); return true;
+}
+async function startCameraBG(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) return false;
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    vid.srcObject=st; await vid.play(); vid.style.display='block'; scene.background=null; return true;
+  }catch(e){ fail('カメラERR '+(e.name||e)); return false; }
+}
+async function startXR(){
+  const session=await navigator.xr.requestSession('immersive-ar',{
+    requiredFeatures:['local-floor'], optionalFeatures:['dom-overlay'],
+    domOverlay:{root:document.body}
+  });
+  renderer.xr.setReferenceSpaceType('local-floor');
+  await renderer.xr.setSession(session);
+  session.addEventListener('end',()=>{ gameActive=false; });
+  scene.background=null; scene.fog=null;
+  hideStart();
+  renderer.setAnimationLoop(()=>{ tick(); });
+}
+function fallbackDesktop(){
+  scene.background=new THREE.Color(0x9fd2ec);
+  scene.fog=new THREE.FogExp2(0xbfe0f0,0.018);
+  controls=new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping=true; controls.enablePan=false;
+  controls.target.set(0,CFG.EYE_HEIGHT,-0.01);
+  controls.minDistance=controls.maxDistance=0.001;
+}
+function hideStart(){ const s=document.getElementById('start'); if(s) s.style.display='none'; }
+function loopRAF(){ hideStart(); (function raf(){ if(MODE==='xr'&&renderer.xr.isPresenting)return;
+  requestAnimationFrame(raf); tick(); })(); }
 
-            const btn = document.getElementById('actionButton');
-            btn.textContent = 'スタート！';
-            btn.className = 'btn btn-start';
-        }
+/* iOSでセンサー拒否時の簡易ドラッグ */
+function setupDrag(){
+  let d=null; const el=renderer.domElement;
+  el.addEventListener('pointerdown',e=>d={x:e.clientX,y:e.clientY,yaw,pit});
+  el.addEventListener('pointermove',e=>{ if(!d)return;
+    yaw=d.yaw-(e.clientX-d.x)*0.005; pit=Math.max(-1.4,Math.min(1.4,d.pit-(e.clientY-d.y)*0.005)); });
+  el.addEventListener('pointerup',()=>d=null);
+}
 
-        function startTimer() {
-            gameState = 'RUNNING';
-            startTime = performance.now();
-            elapsedTime = 0;
-            
-            clearPetals();
-            const btn = document.getElementById('actionButton');
-            btn.textContent = 'ストップ！';
-            btn.className = 'btn btn-stop';
-            document.getElementById('resultMessage').textContent = `こころの中で${currentMode}秒数えよう…！`;
-            document.getElementById('badgeContainer').innerHTML = '';
-            document.getElementById('blindOverlay').classList.remove('active');
+async function begin(){
+  goBtn.outerHTML='<div id="load">森とチャッピーを よういしています…</div>';
+  FACE_TEX=makeFaceTexture();
+  initThree(); buildForest(); placeCats();
 
-            timerInterval = setInterval(() => {
-                const now = performance.now();
-                elapsedTime = (now - startTime) / 1000;
-                document.getElementById('timerDisplay').textContent = elapsedTime.toFixed(2);
+  if(MODE==='xr'){
+    try{ await startXR(); }
+    catch(e){ fail('XR起動失敗:'+(e.name||e)); MODE='desktop'; fallbackDesktop(); loopRAF(); }
+  } else if(MODE==='ios'){
+    const sOK=await enableSensor();
+    const cOK=await startCameraBG();
+    if(!cOK){ fallbackDesktop(); }
+    else if(!sOK){ setupDrag(); }
+    loopRAF();
+  } else {
+    fallbackDesktop(); loopRAF();
+  }
+  startGame();
+}
+goBtn.onclick=begin;
 
-                const blindOverlay = document.getElementById('blindOverlay');
-                const hideLimit = (currentMode === 5) ? 2.0 : 5.0;
+document.getElementById('again').onclick=()=>{
+  // 全ねこを復活
+  for(const c of cats){
+    c.userData.caught=false; c.visible=true;
+    c.scale.setScalar(c.userData.baseScale);
+    const R=MODE==='xr'?5.5:CFG.FIELD*0.7;
+    const a=Math.random()*6.283, r=1.2+Math.random()*R;
+    c.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+    pickTarget(c,R);
+  }
+  document.getElementById('result').style.display='none';
+  startGame();
+};
 
-                if (elapsedTime >= hideLimit) {
-                    if (!blindOverlay.classList.contains('active')) {
-                        blindOverlay.classList.add('active');
-                    }
-                }
-            }, 10);
-        }
-
-        function stopTimer() {
-            clearInterval(timerInterval);
-            gameState = 'FINISHED';
-
-            document.getElementById('blindOverlay').classList.remove('active');
-
-            const targetTime = currentMode;
-            const diff = elapsedTime - targetTime;
-            const absDiff = Math.abs(diff);
-
-            const currentRankings = allRankings[currentMode] || [];
-            const tempRankings = [...currentRankings, { name: playerName, time: elapsedTime, diff: absDiff }];
-            tempRankings.sort((a, b) => a.diff - b.diff);
-            const myRank = tempRankings.findIndex(item => item.name === playerName && item.diff === absDiff) + 1;
-
-            let title = '';
-            let emoji = '👏';
-            let badgeClass = '';
-            let badgeText = '';
-
-            if (myRank > 0 && myRank <= 3) {
-                title = `🌸 おめでとう！${myRank}位だよ！ 🌸`;
-                emoji = '🏆';
-                startPetals();
-            } else if (absDiff === 0.00) {
-                title = '✨ すごい！ぴったり！ ✨';
-                emoji = '👑';
-            } else if (diff < 0) {
-                title = '👍 はやかったね！';
-                emoji = '😊';
-            } else {
-                title = '👍 おしかったね！';
-                emoji = '😊';
-            }
-
-            if (absDiff === 0.00) {
-                badgeClass = 'badge-perfect';
-                badgeText = `🎯 ぴったり${targetTime}.00秒！`;
-            } else if (diff < 0) {
-                badgeClass = 'badge-fast';
-                badgeText = `⚡ ${absDiff.toFixed(2)}秒 はやかった！`;
-            } else {
-                badgeClass = 'badge-slow';
-                badgeText = `⌛ +${absDiff.toFixed(2)}秒 おそかった…`;
-            }
-
-            document.getElementById('resultMessage').textContent = `もういっかいやる？`;
-            document.getElementById('badgeContainer').innerHTML = `<div class="diff-badge ${badgeClass}">${badgeText}</div>`;
-
-            const btn = document.getElementById('actionButton');
-            btn.textContent = '🔄 もういっかいやる';
-            btn.className = 'btn btn-retry';
-
-            addRanking(playerName, elapsedTime, absDiff);
-
-            let modalDesc = `タイム: ${elapsedTime.toFixed(2)}秒 (ずれ: ${diff >= 0 ? '+' : ''}${diff.toFixed(2)}秒)`;
-            if (myRank > 0 && myRank <= 3) {
-                modalDesc = `🎉 おめでとうございます！\nなんと【第${myRank}位】に入りました！\n\n` + modalDesc;
-            }
-            showResultModal(emoji, title, modalDesc);
-        }
-
-        function addRanking(name, time, diff) {
-            if (!allRankings[currentMode]) {
-                allRankings[currentMode] = [];
-            }
-            allRankings[currentMode].push({ name, time, diff });
-            allRankings[currentMode].sort((a, b) => a.diff - b.diff);
-            if (allRankings[currentMode].length > 5) {
-                allRankings[currentMode] = allRankings[currentMode].slice(0, 5);
-            }
-            localStorage.setItem('stopwatch_independent_rankings', JSON.stringify(allRankings));
-            renderRanking();
-        }
-
-        function renderRanking() {
-            const list = document.getElementById('rankingList');
-            const rankingData = allRankings[currentMode] || [];
-
-            if (rankingData.length === 0) {
-                list.innerHTML = '<li style="justify-content: center;">まだきろくがありません</li>';
-                return;
-            }
-            list.innerHTML = rankingData.map((item, index) => {
-                const isTop3 = index < 3;
-                const rankClass = isTop3 ? 'top-rank' : '';
-                const crown = index === 0 ? '👑 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
-                return `
-                    <li class="${rankClass}">
-                        <span style="font-weight: bold;">${crown}${index + 1}. ${escapeHtml(item.name)}</span>
-                        <span style="font-family: monospace; color: var(--rank-time);">${item.time.toFixed(2)}秒 <span style="font-size: 11px; opacity: 0.8;">(±${item.diff.toFixed(2)})</span></span>
-                    </li>
-                `;
-            }).join('');
-        }
-
-        function startPetals() {
-            clearPetals();
-            const container = document.getElementById('petalContainer');
-            for (let i = 0; i < 35; i++) {
-                const petal = document.createElement('div');
-                petal.className = 'petal';
-                const size = Math.random() * 10 + 8;
-                petal.style.width = `${size}px`;
-                petal.style.height = `${size * 1.4}px`;
-                petal.style.left = `${Math.random() * 100}vw`;
-                petal.style.top = `-${Math.random() * 20}px`;
-                petal.style.background = currentTheme === 'dark' ? '#38bdf8' : '#ffb7c5';
-                petal.style.animationDuration = `${Math.random() * 3 + 2}s`;
-                petal.style.animationDelay = `${Math.random() * 2}s`;
-                container.appendChild(petal);
-            }
-        }
-
-        function clearPetals() {
-            document.getElementById('petalContainer').innerHTML = '';
-        }
-
-        function openHowToModal() {
-            document.getElementById('howToModal').style.display = 'flex';
-        }
-        function closeHowToModal() {
-            document.getElementById('howToModal').style.display = 'none';
-        }
-
-        function showResultModal(emoji, title, text) {
-            document.getElementById('modalEmoji').textContent = emoji;
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalText').innerText = text;
-            document.getElementById('resultModal').style.display = 'flex';
-        }
-
-        function closeResultModal() {
-            document.getElementById('resultModal').style.display = 'none';
-        }
-
-        function openNameModal() {
-            document.getElementById('nicknameInput').value = playerName;
-            document.getElementById('nameModalTitle').textContent = "なまえと色をかえる";
-            selectTheme(currentTheme);
-            document.getElementById('nameModal').style.display = 'flex';
-        }
-
-        function saveNickname() {
-            const input = document.getElementById('nicknameInput').value.trim();
-            if (input) {
-                if (input.length > 8) {
-                    alert("なまえは8もじまでにしてね！");
-                    return;
-                }
-                playerName = input;
-                localStorage.setItem('stopwatch_player_name', playerName);
-                localStorage.setItem('stopwatch_theme', currentTheme);
-                document.getElementById('playerNameDisplay').textContent = playerName;
-                applyTheme(currentTheme);
-                document.getElementById('nameModal').style.display = 'none';
-            } else {
-                alert("なまえをいれてね！");
-            }
-        }
-
-        function escapeHtml(str) {
-            return str.replace(/[&'`"<>]/g, function(match) {
-                return {
-                    '&': '&amp;',
-                    '"': '&quot;',
-                    '\'': '&#x27;',
-                    '`': '&#x60;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                }[match];
-            });
-        }
-    </script>
+/* 初期化 */
+(async function boot(){
+  await detectMode();
+  if(MODE==='xr'){
+    leadEl.textContent='まわりが森になり、チャッピーがかくれています。歩いてさがし、近づいて「つかまえる」。3分で20匹めざそう！';
+    noteEl.textContent='平らな床を映してからはじめてください。歩けるスペースでどうぞ。';
+    modeEl.textContent='AR（歩行）モード';
+  } else if(MODE==='ios'){
+    leadEl.textContent='カメラをとおすと森になり、チャッピーがかくれています。かざして見まわし、近づいて「つかまえる」。3分で20匹！';
+    noteEl.innerHTML='iPhoneは歩行追跡に非対応のため、その場で見まわすARです<br>設定→Safari→「モーションと画面の向きのアクセス」をオンに';
+    modeEl.textContent='AR（見まわし）モード';
+  } else {
+    leadEl.textContent='森にチャッピーがかくれています。ドラッグで見まわし、照準に入れて「つかまえる」。3分で20匹めざそう！';
+    noteEl.textContent='スマホの実機（https://）で開くとARになります';
+    modeEl.textContent='プレビュー（森）モード';
+  }
+  goBtn.style.display='';
+})();
+</script>
 </body>
 </html>
