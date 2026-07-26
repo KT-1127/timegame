@@ -1,0 +1,845 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ジャストタイム・ストップウォッチ</title>
+    <style>
+        :root {
+            --bg-grad: linear-gradient(135deg, #ffd1dc, #e0bbe4, #d4f0fc);
+            --text-color: #4a4063;
+            --h1-color: #7b52ab;
+            --sub-color: #6b5b95;
+            --card-bg: rgba(255, 255, 255, 0.6);
+            --card-border: #e2d9fc;
+            --timer-bg: #ffffff;
+            --timer-border: #b5a2ff;
+            --timer-text: #ff758c;
+            --btn-start: linear-gradient(135deg, #9bf6ff, #70c1b3);
+            --btn-start-text: #2e5a51;
+            --btn-stop: linear-gradient(135deg, #ffadad, #ff6b6b);
+            --btn-retry: linear-gradient(135deg, #bdb2ff, #9381ff);
+            --modal-bg: #ffffff;
+            --modal-border: #b5a2ff;
+            --input-bg: #f7f5ff;
+            --input-border: #dcd6f7;
+            --btn-main: #b5a2ff;
+            --rank-text: #4a4063;
+            --rank-time: #ff758c;
+        }
+
+        body.theme-dark {
+            --bg-grad: linear-gradient(135deg, #192231, #1e3a5f, #0f172a);
+            --text-color: #e2e8f0;
+            --h1-color: #7dd3fc;
+            --sub-color: #93c5fd;
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --card-border: #334155;
+            --timer-bg: #1e293b;
+            --timer-border: #38bdf8;
+            --timer-text: #38bdf8;
+            --btn-start: linear-gradient(135deg, #0284c7, #0369a1);
+            --btn-start-text: #ffffff;
+            --btn-stop: linear-gradient(135deg, #0284c7, #0284c7);
+            --btn-retry: linear-gradient(135deg, #0284c7, #0369a1);
+            --modal-bg: #1e293b;
+            --modal-border: #38bdf8;
+            --input-bg: #0f172a;
+            --input-border: #475569;
+            --btn-main: #0284c7;
+            --rank-text: #ffffff;
+            --rank-time: #38bdf8;
+        }
+
+        body {
+            background: var(--bg-grad);
+            color: var(--text-color);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 20px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+            box-sizing: border-box;
+            overflow-x: hidden;
+            position: relative;
+            transition: background 0.3s, color 0.3s;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+        .header-area {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        h1 {
+            font-size: 19px;
+            color: var(--h1-color);
+            margin: 0;
+            cursor: pointer;
+            user-select: none;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.4);
+        }
+        .howto-btn {
+            background: var(--card-bg);
+            border: 2px solid var(--timer-border);
+            color: var(--sub-color);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .howto-btn:hover {
+            opacity: 0.8;
+        }
+        p {
+            font-size: 13px;
+            color: var(--sub-color);
+            margin: 0 0 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .mode-select {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 10px 4px;
+            font-size: 14px;
+            font-weight: bold;
+            border: 2px solid var(--timer-border);
+            background: var(--card-bg);
+            color: var(--sub-color);
+            border-radius: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+        .mode-btn.active {
+            background: var(--btn-main);
+            color: #ffffff;
+            border-color: var(--timer-border);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+        .card {
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            border-radius: 20px;
+            padding: 10px 15px;
+            width: 100%;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .timer-box {
+            background: var(--timer-bg);
+            border: 4px solid var(--timer-border);
+            border-radius: 25px;
+            padding: 20px 10px;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .timer-text {
+            font-size: 68px;
+            font-weight: bold;
+            color: var(--timer-text);
+            font-family: monospace;
+            margin: 5px 0;
+            letter-spacing: -2px;
+            transition: opacity 0.2s;
+        }
+        .blind-msg {
+            position: absolute;
+            inset: 0;
+            background: var(--timer-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .blind-msg.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .message {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--timer-text);
+            margin-top: 5px;
+        }
+        .diff-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 8px;
+            font-family: monospace;
+        }
+        .badge-perfect { background: #ffe66d; color: #555; box-shadow: 0 0 15px rgba(255, 230, 109, 0.6); }
+        .badge-fast { background: #a0c4ff; color: #fff; }
+        .badge-slow { background: #ffadad; color: #fff; }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-bottom: 10px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        }
+        .btn-start {
+            background: var(--btn-start);
+            color: var(--btn-start-text);
+        }
+        .btn-stop {
+            background: var(--btn-stop);
+            color: white;
+        }
+        .btn-retry {
+            background: var(--btn-retry);
+            color: white;
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .ranking-section {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 12px 15px;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+            border: 2px solid var(--card-border);
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 10px;
+        }
+        .ranking-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--sub-color);
+            font-weight: bold;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        li {
+            display: flex;
+            justify-content: space-between;
+            background: var(--card-bg);
+            padding: 6px 10px;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: var(--rank-text);
+        }
+        li.top-rank {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid var(--timer-border);
+            color: var(--rank-text);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: var(--modal-bg);
+            border: 3px solid var(--modal-border);
+            padding: 20px;
+            border-radius: 25px;
+            width: 85%;
+            max-width: 320px;
+            text-align: center;
+            position: relative;
+            z-index: 101;
+            box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            color: var(--text-color);
+        }
+        .modal input {
+            width: 100%;
+            padding: 10px;
+            background: var(--input-bg);
+            border: 2px solid var(--input-border);
+            color: var(--text-color);
+            border-radius: 15px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+            font-size: 15px;
+            text-align: center;
+        }
+        .theme-select-area {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .theme-option {
+            flex: 1;
+            padding: 8px;
+            border-radius: 12px;
+            border: 2px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text-color);
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .theme-option.selected {
+            border-color: var(--h1-color);
+            background: var(--btn-main);
+            color: #ffffff;
+        }
+        .small-btn {
+            background: var(--btn-main);
+            color: white;
+            border: none;
+            padding: 7px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .howto-text {
+            text-align: left;
+            font-size: 12px;
+            color: var(--sub-color);
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        .howto-text ol {
+            padding-left: 18px;
+            margin: 8px 0;
+        }
+        rt {
+            font-size: 9px;
+            color: var(--h1-color);
+        }
+
+        /* 花びらパーティクル */
+        .petal {
+            position: absolute;
+            background: #ffb7c5;
+            border-radius: 150% 0 150% 0;
+            animation: fall linear infinite;
+            z-index: 5;
+            pointer-events: none;
+        }
+        @keyframes fall {
+            0% {
+                transform: translateY(-20px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0.2;
+            }
+        }
+
+        /* 右上のピンクのうさぎさん */
+        .bunny-pink {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            font-size: 24px;
+            animation: hop 2s ease-in-out infinite;
+            z-index: 1;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 4px rgba(255, 105, 180, 0.4));
+        }
+        @keyframes hop {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-8px) scale(1.08); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="petalContainer"></div>
+
+    <!-- 右上のピンクのうさぎさん -->
+    <div class="bunny-pink">🐰</div>
+
+    <div class="container">
+        <!-- ヘッダー -->
+        <header style="width: 100%;">
+            <div class="header-area">
+                <h1 onclick="handleSecretReset()">⏱️ <ruby>時間<rt>じかん</rt></ruby>であわせよう</h1>
+                <button class="howto-btn" onclick="openHowToModal()">❓ <ruby>遊<rt>あそ</rt></ruby>び<ruby>方<rt>かた</rt></ruby></button>
+            </div>
+            <p id="targetSubText">10<ruby>秒<rt>びょう</rt></ruby>でとめよう！</p>
+        </header>
+
+        <!-- モード選択ボタン -->
+        <div class="mode-select">
+            <button id="btnMode5" class="mode-btn" onclick="changeMode(5)">5<ruby>秒<rt>びょう</rt></ruby></button>
+            <button id="btnMode10" class="mode-btn active" onclick="changeMode(10)">10<ruby>秒<rt>びょう</rt></ruby></button>
+            <button id="btnMode20" class="mode-btn" onclick="changeMode(20)">20<ruby>秒<rt>びょう</rt></ruby></button>
+        </div>
+
+        <!-- プレイヤー情報 -->
+        <div class="card">
+            <div>
+                <span style="font-size: 12px;"><ruby>名前<rt>なまえ</rt></ruby>: </span>
+                <span id="playerNameDisplay" style="font-weight: bold;"><ruby>未設定<rt>みせってい</rt></ruby></span>
+            </div>
+            <button class="small-btn" onclick="openNameModal()"><ruby>変更<rt>へんこう</rt></ruby></button>
+        </div>
+
+        <!-- タイマー画面 -->
+        <div class="timer-box">
+            <div style="font-size: 11px; letter-spacing: 2px;" id="modeTitleLabel">TARGET: 10.00s</div>
+            <div id="timerDisplay" class="timer-text">00.00</div>
+            <!-- タイムを隠すブラインド表示 -->
+            <div id="blindOverlay" class="blind-msg">
+                <span style="font-size: 28px;">🐰🙈</span>
+                <span style="font-size: 12px; font-weight: bold; margin-top: 5px;"><ruby>時間<rt>じかん</rt></ruby>がかくされたよ！かんかくで数えよう！</span>
+            </div>
+            <div id="resultMessage" class="message">スタートボタンをおしてね</div>
+            <div id="badgeContainer"></div>
+        </div>
+
+        <!-- ボタン類 -->
+        <div style="width: 100%;">
+            <button id="actionButton" class="btn btn-start" onclick="handleActionButton()">スタート！</button>
+        </div>
+    </div>
+
+    <!-- ランキング -->
+    <div class="ranking-section">
+        <div class="ranking-header">
+            <span id="rankingTitleText">🏆 <ruby>順位<rt>じゅんい</rt></ruby> (10<ruby>秒<rt>びょう</rt></ruby>)</span>
+        </div>
+        <ul id="rankingList">
+            <li style="justify-content: center;">まだ<ruby>記録<rt>きろく</rt></ruby>がありません</li>
+        </ul>
+    </div>
+
+    <!-- ニックネーム & テーマ設定モーダル -->
+    <div id="nameModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top: 0;" id="nameModalTitle"><ruby>名前<rt>なまえ</rt></ruby>をいれてね</h3>
+            <p style="font-size: 12px; margin-bottom: 8px;"><ruby>順位表<rt>じゅんいひょう</rt></ruby>にでるよ（8もじまで）</p>
+            <input type="text" id="nicknameInput" maxlength="8" placeholder="例：うさぎさん">
+            
+            <p style="font-size: 13px; margin: 10px 0 6px 0; font-weight: bold; color: var(--h1-color);">🎨 <ruby>背景<rt>はいけい</rt></ruby>のいろをえらぶ</p>
+            <div class="theme-select-area">
+                <div id="themeLight" class="theme-option selected" onclick="selectTheme('light')">☀️ あかるい色系<br><span style="font-size:9px; opacity:0.8;">（パステル）</span></div>
+                <div id="themeDark" class="theme-option" onclick="selectTheme('dark')">🌙 くらい色系<br><span style="font-size:9px; opacity:0.8;">（水色・青）</span></div>
+            </div>
+
+            <button class="small-btn" style="width: 100%; padding: 12px; font-size: 15px;" onclick="saveNickname()">これでOK！</button>
+        </div>
+    </div>
+
+    <!-- シークレットモード：ランキング削除選択モーダル -->
+    <div id="secretModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top: 0; margin-bottom: 8px;">🐰 うらモード</h3>
+            <p style="font-size: 13px; margin-bottom: 15px;">どの<ruby>記録<rt>きろく</rt></ruby>を消しますか？</p>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                <button class="small-btn" style="padding: 10px; font-size: 12px;" onclick="resetSpecificRanking(5)">5<ruby>秒<rt>びょう</rt></ruby>のきろくを消す</button>
+                <button class="small-btn" style="padding: 10px; font-size: 12px;" onclick="resetSpecificRanking(10)">10<ruby>秒<rt>びょう</rt></ruby>のきろくを消す</button>
+                <button class="small-btn" style="padding: 10px; font-size: 12px;" onclick="resetSpecificRanking(20)">20<ruby>秒<rt>びょう</rt></ruby>のきろくを消す</button>
+            </div>
+            <button class="small-btn" style="width: 100%; padding: 10px; background: #64748b;" onclick="closeSecretModal()">もどる</button>
+        </div>
+    </div>
+
+    <!-- やり方説明モーダル -->
+    <div id="howToModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top: 0; margin-bottom: 10px;">📖 あそびかた</h3>
+            <div class="howto-text">
+                <ol>
+                    <li>うえのボタンから、すきなじかん（5秒・10秒・20秒）をえらぼう！</li>
+                    <li>「スタート！」をおすと、じかんがすすむよ。</li>
+                    <li>5秒のときは<strong>2秒</strong>、10・20秒のときは<strong>5秒</strong>をすぎると、じかんが見えなくなるよ！</li>
+                    <li>心の中でかぞえて、ぴったりだと思ったところで<strong>「ストップ！」</strong>をおそう。</li>
+                    <li>3位までに入ると、お祝いの花びらがふるよ！🌸</li>
+                </ol>
+            </div>
+            <button class="small-btn" style="width: 100%; padding: 10px;" onclick="closeHowToModal()">とじる</button>
+        </div>
+    </div>
+
+    <!-- 結果モーダル -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <div id="modalEmoji" style="font-size: 32px; margin-bottom: 3px;">🎉</div>
+            <h3 id="modalTitle" style="margin: 3px 0;"><ruby>結果<rt>けっか</rt></ruby></h3>
+            <p id="modalText" style="font-size: 12px; margin-bottom: 12px;">ずれ: 0.00<ruby>秒<rt>びょう</rt></ruby></p>
+            <button class="small-btn" style="width: 100%; padding: 10px;" onclick="closeResultModal()">OK</button>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 10;
+        let gameState = 'IDLE'; 
+        let startTime = 0;
+        let elapsedTime = 0;
+        let timerInterval = null;
+        let playerName = localStorage.getItem('stopwatch_player_name') || '';
+        let currentTheme = localStorage.getItem('stopwatch_theme') || 'light';
+        
+        let allRankings = JSON.parse(localStorage.getItem('stopwatch_independent_rankings') || '{"5":[], "10":[], "20":[]}');
+
+        let titleClickCount = 0;
+        let titleClickTimer = null;
+
+        applyTheme(currentTheme);
+
+        if (!playerName) {
+            document.getElementById('nameModal').style.display = 'flex';
+        } else {
+            document.getElementById('playerNameDisplay').textContent = playerName;
+            document.getElementById('nameModal').style.display = 'none';
+        }
+
+        updateModeUI();
+
+        function selectTheme(theme) {
+            currentTheme = theme;
+            document.getElementById('themeLight').classList.toggle('selected', theme === 'light');
+            document.getElementById('themeDark').classList.toggle('selected', theme === 'dark');
+            applyTheme(theme);
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('theme-dark');
+            } else {
+                document.body.classList.remove('theme-dark');
+            }
+        }
+
+        function handleSecretReset() {
+            titleClickCount++;
+            clearTimeout(titleClickTimer);
+            if (titleClickCount >= 10) {
+                document.getElementById('secretModal').style.display = 'flex';
+                titleClickCount = 0;
+            } else {
+                titleClickTimer = setTimeout(() => {
+                    titleClickCount = 0;
+                }, 1000);
+            }
+        }
+
+        function resetSpecificRanking(targetMode) {
+            allRankings[targetMode] = [];
+            localStorage.setItem('stopwatch_independent_rankings', JSON.stringify(allRankings));
+            renderRanking();
+            document.getElementById('secretModal').style.display = 'none';
+            alert(`🔓 ${targetMode}秒のきろくをけしました！`);
+        }
+
+        function closeSecretModal() {
+            document.getElementById('secretModal').style.display = 'none';
+        }
+
+        function changeMode(seconds) {
+            if (gameState === 'RUNNING') return;
+            currentMode = seconds;
+            gameState = 'IDLE';
+            document.getElementById('timerDisplay').textContent = '00.00';
+            document.getElementById('resultMessage').textContent = 'スタートボタンをおしてね';
+            document.getElementById('badgeContainer').innerHTML = '';
+            document.getElementById('blindOverlay').classList.remove('active');
+            clearPetals();
+            
+            const btn = document.getElementById('actionButton');
+            btn.textContent = 'スタート！';
+            btn.className = 'btn btn-start';
+
+            updateModeUI();
+        }
+
+        function updateModeUI() {
+            document.getElementById('btnMode5').className = currentMode === 5 ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('btnMode10').className = currentMode === 10 ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('btnMode20').className = currentMode === 20 ? 'mode-btn active' : 'mode-btn';
+
+            document.getElementById('modeTitleLabel').textContent = `TARGET: ${currentMode}.00s`;
+            document.getElementById('rankingTitleText').textContent = `🏆 順位 (${currentMode}秒)`;
+            document.getElementById('targetSubText').textContent = `${currentMode}秒でとめよう！`;
+
+            renderRanking();
+        }
+
+        function handleActionButton() {
+            if (gameState === 'IDLE' || gameState === 'READY_TO_START') {
+                startTimer();
+            } else if (gameState === 'RUNNING') {
+                stopTimer();
+            } else if (gameState === 'FINISHED') {
+                prepareRetry();
+            }
+        }
+
+        function prepareRetry() {
+            gameState = 'READY_TO_START';
+            document.getElementById('timerDisplay').textContent = '00.00';
+            document.getElementById('resultMessage').textContent = 'じゅんびができたらスタート！';
+            document.getElementById('badgeContainer').innerHTML = '';
+            document.getElementById('blindOverlay').classList.remove('active');
+            clearPetals();
+
+            const btn = document.getElementById('actionButton');
+            btn.textContent = 'スタート！';
+            btn.className = 'btn btn-start';
+        }
+
+        function startTimer() {
+            gameState = 'RUNNING';
+            startTime = performance.now();
+            elapsedTime = 0;
+            
+            clearPetals();
+            const btn = document.getElementById('actionButton');
+            btn.textContent = 'ストップ！';
+            btn.className = 'btn btn-stop';
+            document.getElementById('resultMessage').textContent = `こころの中で${currentMode}秒数えよう…！`;
+            document.getElementById('badgeContainer').innerHTML = '';
+            document.getElementById('blindOverlay').classList.remove('active');
+
+            timerInterval = setInterval(() => {
+                const now = performance.now();
+                elapsedTime = (now - startTime) / 1000;
+                document.getElementById('timerDisplay').textContent = elapsedTime.toFixed(2);
+
+                const blindOverlay = document.getElementById('blindOverlay');
+                const hideLimit = (currentMode === 5) ? 2.0 : 5.0;
+
+                if (elapsedTime >= hideLimit) {
+                    if (!blindOverlay.classList.contains('active')) {
+                        blindOverlay.classList.add('active');
+                    }
+                }
+            }, 10);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            gameState = 'FINISHED';
+
+            document.getElementById('blindOverlay').classList.remove('active');
+
+            const targetTime = currentMode;
+            const diff = elapsedTime - targetTime;
+            const absDiff = Math.abs(diff);
+
+            const currentRankings = allRankings[currentMode] || [];
+            const tempRankings = [...currentRankings, { name: playerName, time: elapsedTime, diff: absDiff }];
+            tempRankings.sort((a, b) => a.diff - b.diff);
+            const myRank = tempRankings.findIndex(item => item.name === playerName && item.diff === absDiff) + 1;
+
+            let title = '';
+            let emoji = '👏';
+            let badgeClass = '';
+            let badgeText = '';
+
+            if (myRank > 0 && myRank <= 3) {
+                title = `🌸 おめでとう！${myRank}位だよ！ 🌸`;
+                emoji = '🏆';
+                startPetals();
+            } else if (absDiff === 0.00) {
+                title = '✨ すごい！ぴったり！ ✨';
+                emoji = '👑';
+            } else if (diff < 0) {
+                title = '👍 はやかったね！';
+                emoji = '😊';
+            } else {
+                title = '👍 おしかったね！';
+                emoji = '😊';
+            }
+
+            if (absDiff === 0.00) {
+                badgeClass = 'badge-perfect';
+                badgeText = `🎯 ぴったり${targetTime}.00秒！`;
+            } else if (diff < 0) {
+                badgeClass = 'badge-fast';
+                badgeText = `⚡ ${absDiff.toFixed(2)}秒 はやかった！`;
+            } else {
+                badgeClass = 'badge-slow';
+                badgeText = `⌛ +${absDiff.toFixed(2)}秒 おそかった…`;
+            }
+
+            document.getElementById('resultMessage').textContent = `もういっかいやる？`;
+            document.getElementById('badgeContainer').innerHTML = `<div class="diff-badge ${badgeClass}">${badgeText}</div>`;
+
+            const btn = document.getElementById('actionButton');
+            btn.textContent = '🔄 もういっかいやる';
+            btn.className = 'btn btn-retry';
+
+            addRanking(playerName, elapsedTime, absDiff);
+
+            let modalDesc = `タイム: ${elapsedTime.toFixed(2)}秒 (ずれ: ${diff >= 0 ? '+' : ''}${diff.toFixed(2)}秒)`;
+            if (myRank > 0 && myRank <= 3) {
+                modalDesc = `🎉 おめでとうございます！\nなんと【第${myRank}位】に入りました！\n\n` + modalDesc;
+            }
+            showResultModal(emoji, title, modalDesc);
+        }
+
+        function addRanking(name, time, diff) {
+            if (!allRankings[currentMode]) {
+                allRankings[currentMode] = [];
+            }
+            allRankings[currentMode].push({ name, time, diff });
+            allRankings[currentMode].sort((a, b) => a.diff - b.diff);
+            if (allRankings[currentMode].length > 5) {
+                allRankings[currentMode] = allRankings[currentMode].slice(0, 5);
+            }
+            localStorage.setItem('stopwatch_independent_rankings', JSON.stringify(allRankings));
+            renderRanking();
+        }
+
+        function renderRanking() {
+            const list = document.getElementById('rankingList');
+            const rankingData = allRankings[currentMode] || [];
+
+            if (rankingData.length === 0) {
+                list.innerHTML = '<li style="justify-content: center;">まだきろくがありません</li>';
+                return;
+            }
+            list.innerHTML = rankingData.map((item, index) => {
+                const isTop3 = index < 3;
+                const rankClass = isTop3 ? 'top-rank' : '';
+                const crown = index === 0 ? '👑 ' : index === 1 ? '🥈 ' : index === 2 ? '🥉 ' : '';
+                return `
+                    <li class="${rankClass}">
+                        <span style="font-weight: bold;">${crown}${index + 1}. ${escapeHtml(item.name)}</span>
+                        <span style="font-family: monospace; color: var(--rank-time);">${item.time.toFixed(2)}秒 <span style="font-size: 11px; opacity: 0.8;">(±${item.diff.toFixed(2)})</span></span>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        function startPetals() {
+            clearPetals();
+            const container = document.getElementById('petalContainer');
+            for (let i = 0; i < 35; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal';
+                const size = Math.random() * 10 + 8;
+                petal.style.width = `${size}px`;
+                petal.style.height = `${size * 1.4}px`;
+                petal.style.left = `${Math.random() * 100}vw`;
+                petal.style.top = `-${Math.random() * 20}px`;
+                petal.style.background = currentTheme === 'dark' ? '#38bdf8' : '#ffb7c5';
+                petal.style.animationDuration = `${Math.random() * 3 + 2}s`;
+                petal.style.animationDelay = `${Math.random() * 2}s`;
+                container.appendChild(petal);
+            }
+        }
+
+        function clearPetals() {
+            document.getElementById('petalContainer').innerHTML = '';
+        }
+
+        function openHowToModal() {
+            document.getElementById('howToModal').style.display = 'flex';
+        }
+        function closeHowToModal() {
+            document.getElementById('howToModal').style.display = 'none';
+        }
+
+        function showResultModal(emoji, title, text) {
+            document.getElementById('modalEmoji').textContent = emoji;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalText').innerText = text;
+            document.getElementById('resultModal').style.display = 'flex';
+        }
+
+        function closeResultModal() {
+            document.getElementById('resultModal').style.display = 'none';
+        }
+
+        function openNameModal() {
+            document.getElementById('nicknameInput').value = playerName;
+            document.getElementById('nameModalTitle').textContent = "なまえと色をかえる";
+            selectTheme(currentTheme);
+            document.getElementById('nameModal').style.display = 'flex';
+        }
+
+        function saveNickname() {
+            const input = document.getElementById('nicknameInput').value.trim();
+            if (input) {
+                if (input.length > 8) {
+                    alert("なまえは8もじまでにしてね！");
+                    return;
+                }
+                playerName = input;
+                localStorage.setItem('stopwatch_player_name', playerName);
+                localStorage.setItem('stopwatch_theme', currentTheme);
+                document.getElementById('playerNameDisplay').textContent = playerName;
+                applyTheme(currentTheme);
+                document.getElementById('nameModal').style.display = 'none';
+            } else {
+                alert("なまえをいれてね！");
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&'`"<>]/g, function(match) {
+                return {
+                    '&': '&amp;',
+                    '"': '&quot;',
+                    '\'': '&#x27;',
+                    '`': '&#x60;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                }[match];
+            });
+        }
+    </script>
+</body>
+</html>
